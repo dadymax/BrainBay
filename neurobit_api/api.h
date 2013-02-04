@@ -127,6 +127,9 @@ enum {
 * Device context
 */
 
+/* REMARK: These contect functions should not be used in callback functions
+	defined in an application (such as NdProcSamples). */
+
 /* Set pointer to array of names of devices supported by API and return
 	their number. (Additionally the array is terminated with NULL pointer.) */
 word NdEnumDevices(const char* const ** devs);
@@ -243,15 +246,16 @@ int NdSetParam(NDPARAMID par, word chan, const NDSETVAL *val);
 	On error the function returns 0. */
 word NdGetOptNum(NDPARAMID par, word chan);
 
-/* Convert parameter pid in given parameter space to string *s.
-	The function returns pointer to the resulting string, and on error it
-	returns NULL. */
-char* NdParam2Str(NDPARAMID pid, short space, char *s);
+/* Convert parameter pid in given parameter space to string *buf.
+	buf is an output buffer of minimum length 256B, where the resulting string
+	is stored. The function returns pointer to the output buffer on success,
+	and on error it returns NULL. */
+char* NdParam2Str(NDPARAMID pid, short space, char *buf);
 
 /* Set list of parameter options in string s and delimit it with additional '\0'.
-	If tab is not NULL, array pointed by tab if filled out with pinters to
+	If tab is not NULL, array pointed by tab is filled out with pointers to
 	individual option strings, and NULL pointer at the end.
-	The function returns pointer to s on success and NULL it given parameter
+	The function returns pointer to s on success and NULL if given parameter
 	is not a list-type. */
 char* NdParamList2Str(const NDPARAM *p, char *s, char **tab);
 
@@ -302,11 +306,31 @@ int NdStartMeasurement(word dc, word mode);
 	-1 - invalid device context or device state. */
 int NdStopMeasurement(word dc);
 
+/* Get device serial number, represented as a null terminated string, for
+	given device context.
+	The serial number becomes available in a while after successful
+	measurement initialization by NdStartMeasurement function (before
+	the first measurement data packet passed on to NdProcSamples function).
+	After disconnection (with NdStopMeasurement) serial number becomes
+	unavailable. As long as the serial number is unavailable, the function
+	returns NULL.*/
+const char* NdGetDevSN(word dc);
+
+/* Get current state of indicator ind for given context dc.
+	chan is a channel index for ind=ND_IND_SIGNAL (0 - common voltage,
+	1 - channel A, ...) This function is an alternative for calback
+	function NdUserInd to access states. The returned value is state (>=0),
+	or negative value when state is not available. */
+int NdGetUserInd(word dc, int ind, word chan);
+
 /*------------------------------------------------------------------------*/
 
 /*
 * Application-specific functions called back by driver state machine
 */
+
+/* REMARK: These calback functions should not manipulate device context
+	(must not call NdSelectDevContext and similar functions). */
 
 /* Display to user a message msg in given device context dc.
 	Text of a message starts with exclamation mark for errors. */
@@ -365,6 +389,8 @@ typedef int (*TStr2Param)(const char *s, NDPARAMID par, short space);
 typedef int (*TProtocolEngine)(void);
 typedef int (*TStartMeasurement)(word dc, word mode);
 typedef int (*TStopMeasurement)(word dc);
+typedef const char* (*TGetDevSN)(word dc);
+typedef int (*TGetUserInd)(word dc, int ind, word chan);
 
 /* Application-specific functions called back by driver state machine */
 

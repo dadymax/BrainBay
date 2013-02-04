@@ -1,6 +1,6 @@
 /* -----------------------------------------------------------------------------
 
-  BrainBay  Version 1.7, GPL 2003-2010, contact: chris@shifz.org
+  BrainBay  Version 1.8, GPL 2003-2011, contact: chris@shifz.org
   
   MODULE: OB_COMPARE.CPP:  contains functions for the Comparator-Object
   Author: Chris Veigl

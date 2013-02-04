@@ -1,6 +1,6 @@
 /* -----------------------------------------------------------------------------
 
-  BrainBay  Version 1.7, GPL 2003-2010, contact: chris@shifz.org
+  BrainBay  Version 1.8, GPL 2003-2011, contact: chris@shifz.org
   
   OB_MOUSE.CPP:  contains the Mouse-Object
   Author: Chris Veigl
@@ -437,11 +437,13 @@ void MOUSEOBJ::incoming_data(int port, float value)
 	{
 		case 0: if (!xinc) xpos = value; 
 			else { if (fabs(value)>0.001) xpos+= value; }//if (fabs(value)>0.8) xpos+= value; }
-			    if (xpos<0) xpos=0; if(xpos*3.76f>(float)xmax) xpos=(float)xmax/3.76f; 
+			  //  if (xpos<0) xpos=0; if(xpos*3.76f>(float)xmax) xpos=(float)xmax/3.76f;
+			  if (xpos<0) xpos=0; if(xpos>(float)xmax) xpos=(float)xmax;
 			  break;
 		case 1: if (!yinc) ypos = value; 
 			else { if (fabs(value)>0.001) ypos+= value;} // if (fabs(value)>0.8) ypos+= value; }
-				if (ypos<0) ypos=0; if(ypos*1.56f>(float)ymax) ypos=(float) ymax/1.56f; 
+				//if (ypos<0) ypos=0; if(ypos*1.56f>(float)ymax) ypos=(float) ymax/1.56f; 
+			   if (ypos<0) ypos=0; if(ypos>(float)ymax) ypos=(float) ymax;
 			  break;
 
 		case 2: lbutton = (int)value; 
@@ -596,8 +598,8 @@ void MOUSEOBJ::work(void)
 	{
 		if (hDlg=ghWndToolbox)
 		{
-			SetDlgItemInt(hDlg,IDC_ACT_X,(int)(xpos*3.76f),FALSE);
-			SetDlgItemInt(hDlg,IDC_ACT_Y,(int)(xpos*1.56f),FALSE);
+			SetDlgItemInt(hDlg,IDC_ACT_X,(int)(xpos),FALSE); //*3.76f
+			SetDlgItemInt(hDlg,IDC_ACT_Y,(int)(ypos),FALSE); // *1.56f
 		}
 
 		if (hWndClick)

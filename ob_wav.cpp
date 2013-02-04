@@ -1,8 +1,8 @@
 /* -----------------------------------------------------------------------------
 
-  BrainBay  -  Version 1.7, GPL 2003-2010
+  BrainBay  -  Version 1.8, GPL 2003-2011
 
-  MODULE:  OB_AND.CPP
+  MODULE:  OB_WAV.CPP
   Authors: Jeremy Wilkerson, Chris Veigl
 
 
@@ -301,7 +301,7 @@ int WAVOBJ::loadWavFile(char* filename)
     
 	if (playing) {  SDL_UnlockAudio(); SDL_PauseAudio(0);}
 
-//	mute=sav;
+	mute=sav;
 	
 	return wav_length_ms;
 }
@@ -526,26 +526,28 @@ LRESULT CALLBACK WavDlgHandler(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 			{
 				case IDC_OPENWAVFILE:
 					char filename [MAX_PATH];
-					CheckDlgButton(hDlg, IDC_WAVMUTE, true);
+					int saved;
+					saved=st->mute;
 					ZeroMemory(filename, MAX_PATH);
-					open_file_dlg(hDlg, filename, FT_WAV, OPEN_LOAD);
-					int length;
-					if ((length = st->loadWavFile(filename)) < 0)
+					if (open_file_dlg(hDlg, filename, FT_WAV, OPEN_LOAD))
 					{
-						SetDlgItemText(hDlg, IDC_WAVFILENAME, "");
-						SetDlgItemInt(hDlg, IDC_WAVLENGTH, 0, FALSE);
-						report_error("Unable to load audio file");
-						report_error(SDL_GetError());
-                       // cout << SDL_GetError() << endl;
-                       // cout << Sound_GetError() << endl;
-						st->mute = true;
-
+						int length;
+						if ((length = st->loadWavFile(filename)) < 0)
+						{
+							SetDlgItemText(hDlg, IDC_WAVFILENAME, "");
+							SetDlgItemInt(hDlg, IDC_WAVLENGTH, 0, FALSE);
+							report_error("Unable to load audio file");
+							report_error(SDL_GetError());
+						   // cout << SDL_GetError() << endl;
+						   // cout << Sound_GetError() << endl;
+						}
+						else
+						{
+							SetDlgItemText(hDlg, IDC_WAVFILENAME, filename);
+							SetDlgItemInt(hDlg, IDC_WAVLENGTH, length, FALSE);
+						}
 					}
-					else
-					{
-						SetDlgItemText(hDlg, IDC_WAVFILENAME, filename);
-						SetDlgItemInt(hDlg, IDC_WAVLENGTH, length, FALSE);
-					}
+					st->mute = saved;
 					break;
 				case IDC_WAVREPINTERVAL:
 					if (HIWORD(wParam) == EN_KILLFOCUS)

@@ -58,6 +58,7 @@ enum {
 	ND_PAR_CH_SUM_DISC,      /* Sum disconnected */
 	ND_PAR_CH_TEST_SR,       /* Sampling rate for input circuit continuity test */
 	ND_PAR_CH_TEST_RANGE,    /* Measurement range for input circuit continuity test */
+	ND_PAR_CH_REF,           /* Connection of "-" input to common reference electrode */
 	/* <- new channel parameters can be added here */
 
 	ND_CHAN_PAR_END          /* Have to be at the end of general parameter list */

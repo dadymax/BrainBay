@@ -1,6 +1,6 @@
 /* -----------------------------------------------------------------------------
 
-  BrainBay  Version 1.7, GPL 2003-2010, contact: chris@shifz.org
+  BrainBay  Version 1.8, GPL 2003-2011, contact: chris@shifz.org
   
   MODULE: OB_MCI.CPP:  definitions for the Multimedia-Player-Object
   Author: Chris Veigl
@@ -34,14 +34,12 @@ LRESULT CALLBACK MCIDlgHandler(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 			SCROLLINFO lpsi;
 		    lpsi.cbSize=sizeof(SCROLLINFO);
 			lpsi.fMask=SIF_RANGE|SIF_POS;
-			lpsi.nMin=1; lpsi.nMax=5000;
+			lpsi.nMin=4; lpsi.nMax=5000;
 			SetScrollInfo(GetDlgItem(hDlg,IDC_SPEEDUPDATEBAR),SB_CTL,&lpsi, TRUE);
-			SetScrollInfo(GetDlgItem(hDlg,IDC_VOLUMEUPDATEBAR),SB_CTL,&lpsi, TRUE);
 			SetScrollPos(GetDlgItem(hDlg,IDC_SPEEDUPDATEBAR), SB_CTL,st->upd_speed, TRUE);
-			SetScrollPos(GetDlgItem(hDlg,IDC_VOLUMEUPDATEBAR), SB_CTL,st->upd_volume, TRUE);
 			SetDlgItemInt(hDlg, IDC_UPDATESPEED, st->upd_speed, FALSE);
-			SetDlgItemInt(hDlg, IDC_UPDATEVOLUME, st->upd_volume, FALSE);
-
+			SetDlgItemInt(hDlg, IDC_POS_CENTER, st->pos_center, FALSE);
+			CheckDlgButton(hDlg, IDC_PLAY_ONCE, st->play_once);
 		return TRUE;
         
 	case WM_CLOSE:
@@ -66,10 +64,13 @@ LRESULT CALLBACK MCIDlgHandler(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 			}
 			InvalidateRect(hDlg,NULL,FALSE);
 			break;
+		  case IDC_PLAY_ONCE:
+			  st->play_once=IsDlgButtonChecked(hDlg,IDC_PLAY_ONCE);
+			  break;
 		    case IDC_LOAD:
 				if (st->m_video) {	MCIWndStop(st->m_video); 	MCIWndDestroy(st->m_video); }
 				
-				st->m_video = MCIWndCreate(ghWndMain, hInst,WS_VISIBLE|WS_THICKFRAME|MCIWNDF_NOMENU|MCIWNDF_NOPLAYBAR|MCIWNDF_NOERRORDLG,st->mcifile);
+				st->m_video = MCIWndCreate(ghWndMain, hInst,WS_VISIBLE|WS_THICKFRAME|MCIWNDF_NOERRORDLG,st->mcifile);
 
 				if (!st->m_video)  report_error ("Cannot open MCI File");
 				else
@@ -113,6 +114,10 @@ LRESULT CALLBACK MCIDlgHandler(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 					MCIWndPlay(st->m_video);
 					}
 					break;
+				case IDC_POS_CENTER:
+					st->pos_center=GetDlgItemInt(hDlg,IDC_POS_CENTER,0,FALSE);
+
+					break;
 
 		}
 		break;
@@ -125,11 +130,6 @@ LRESULT CALLBACK MCIDlgHandler(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 			{
 					SetDlgItemInt(hDlg, IDC_UPDATESPEED, nNewPos, TRUE);
                     st->upd_speed=nNewPos;
-			}
-			if (lParam == (long) GetDlgItem(hDlg,IDC_VOLUMEUPDATEBAR))  
-			{
-					SetDlgItemInt(hDlg, IDC_UPDATEVOLUME, nNewPos, TRUE);
-                    st->upd_volume=nNewPos;
 			}
 			break;
 		}
@@ -150,20 +150,25 @@ LRESULT CALLBACK MCIDlgHandler(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 
 MCIOBJ::MCIOBJ(int num) : BASE_CL()	
 	  {
-	    inports  = 4;
+	    inports  = 5;
 		outports = 0;
 		strcpy(in_ports[0].in_name,"play");
 		strcpy(in_ports[1].in_name,"vol");
 		strcpy(in_ports[2].in_name,"speed");
 		strcpy(in_ports[3].in_name,"step");
+		strcpy(in_ports[4].in_name,"position");
 	
-		width=75;updatespeed=0;
+		width=75;
 		left=250;right=500;top=100;bottom=200;
 		input=0;m_video=0;speed=1000; volume=1000;
+		play_once=FALSE;
 		updatestep=0;step=0;
-		updatevolume=1000; volume=1000;
-		upd_speed=200; upd_volume=20;
-		play=INVALID_VALUE; playing=FALSE;
+		volume=1000;
+		upd_speed=200; 
+		pos_center=0;pos_change=0;
+		prevtime=0;
+
+		play=INVALID_VALUE; playing=FALSE; resetted=FALSE;
 		strcpy(mcifile,"none");
 		//displayWnd=create_AVI_Window(left,right,top,bottom,&GLRC);	
 	  }
@@ -191,14 +196,16 @@ void MCIOBJ::load(HANDLE hFile)
 		load_property("wnd-left",P_INT,&left);
 		load_property("wnd-right",P_INT,&right);
 		load_property("upd_speed",P_INT,&upd_speed);
-		load_property("upd_volume",P_INT,&upd_volume);
+		load_property("pos_center",P_INT,&pos_center);
+		load_property("play_once",P_INT,&play_once);
 
 		if (strcmp(mcifile,"none"))
 		{
 			char szFileName[MAX_PATH] = "";
 			strcpy(szFileName,mcifile);
 						
-			m_video = MCIWndCreate(ghWndMain, hInst,WS_VISIBLE|WS_THICKFRAME|MCIWNDF_NOMENU|MCIWNDF_NOPLAYBAR|MCIWNDF_NOERRORDLG,mcifile);
+//			m_video = MCIWndCreate(ghWndMain, hInst,WS_VISIBLE|WS_THICKFRAME|MCIWNDF_NOMENU|MCIWNDF_NOPLAYBAR|MCIWNDF_NOERRORDLG,mcifile);
+			m_video = MCIWndCreate(ghWndMain, hInst,WS_VISIBLE|WS_THICKFRAME|MCIWNDF_NOERRORDLG,mcifile);
 			if (!m_video)  report_error ("Cannot open MCI File");
 			else
 			{
@@ -231,7 +238,9 @@ void MCIOBJ::save(HANDLE hFile)
 		save_property(hFile,"wnd-left",P_INT,&left);
 		save_property(hFile,"wnd-right",P_INT,&right);
 		save_property(hFile,"upd_speed",P_INT,&upd_speed);
-		save_property(hFile,"upd_volume",P_INT,&upd_volume);
+		save_property(hFile,"pos_center",P_INT,&pos_center);
+   	    save_property(hFile,"play_once",P_INT,&play_once);
+
 
 }
 
@@ -243,6 +252,7 @@ void MCIOBJ::incoming_data(int port, float value)
 			case 1: volume=(int)value;break;
 			case 2: speed=(int)value; break;
 			case 3: step=(int)value; break;
+			case 4: pos_change=(int)value; break;
 		}
 
 }
@@ -252,48 +262,48 @@ void MCIOBJ::work(void)
 //		  InvalidateRect(displayWnd,NULL,FALSE);	
 
 	if (GLOBAL.fly) return;
+	if (!m_video) return;
 
-	if (m_video)
-	{
 	if (MCIWndGetPosition(m_video)==MCIWndGetLength(m_video)) playing=FALSE;
 
 	if ((play!=INVALID_VALUE) && (m_video) && (!playing))
-	{ MCIWndPlay(m_video); playing = TRUE; }
-
-	if ((play==INVALID_VALUE) && (m_video) && (playing))
-	{	MCIWndStop(m_video); playing=FALSE; }
-
-
-	updatespeed++; updatevolume++;
-
-	if (updatevolume >= upd_volume)
-	{
-		updatevolume=0;
-		if (actvolume!=volume) { actvolume=volume;	MCIWndSetVolume(m_video, volume); }
+	{ 
+		if ((!play_once)||(resetted)) { MCIWndPlay(m_video); playing = TRUE; }
+		resetted=FALSE;
 	}
-	
-	
-	if (updatespeed >= upd_speed)
+
+	if (play==INVALID_VALUE)
+	{
+		resetted=TRUE;
+		if ((m_video) && (playing))
+		{	MCIWndStop(m_video); playing=FALSE; }
+	}
+
+
+	acttime=TIMING.acttime-prevtime;
+    if (((float)acttime/(float)TIMING.pcfreq*1000)>(float)upd_speed)
 	{  
-		updatespeed=0;
+		prevtime=TIMING.acttime;
 		if (actspeed!=speed) { actspeed=speed; MCIWndSetSpeed(m_video, speed); }	
-	}
-
-	if (updatestep !=step)
-	{
-		updatestep=step;
-		MCIWndStep(m_video,1); 
+		if (actvolume!=volume) { actvolume=volume;	MCIWndSetVolume(m_video, volume); }
+		if (step) { MCIWndStep(m_video,step); step=0;} 
+		if (pos_change) {MCIWndSeek(m_video,pos_center+pos_change); pos_change=0;}
 
 		if (MCIWndGetPosition(m_video)==MCIWndGetLength(m_video))
+		{
 			//MCIWndPlay(m_video);
 			MCIWndSeek(m_video,1);
-	}
+		}
 	}
 }
 
 MCIOBJ::~MCIOBJ()
 	  {
-		if (m_video) {	MCIWndStop(m_video); 	MCIWndDestroy(m_video); }
+		if (m_video) {	
+			MCIWndStop(m_video); 	
+			MCIWndClose(m_video); 
+			Sleep(1000);
+			MCIWndDestroy(m_video); }
 	  }  
 
 

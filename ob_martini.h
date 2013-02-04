@@ -2,7 +2,7 @@
 
 /* -----------------------------------------------------------------------------
 
-  BrainBay  Version 1.7, GPL 2003-2010, contact: chris@shifz.org
+  BrainBay  Version 1.8, GPL 2003-2011, contact: chris@shifz.org
   
   OB_MARTINI.H:  contains the MARTINI-Object
 

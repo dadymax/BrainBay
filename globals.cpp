@@ -69,6 +69,12 @@
 #include "ob_array3600.h"
 #include "ob_comreader.h"
 #include "ob_neurobit.h"
+#include "ob_min.h"
+#include "ob_max.h"
+#include "ob_round.h"
+#include "ob_differentiate.h"
+#include "ob_delay.h"
+#include "ob_limiter.h"
 
 
 //
@@ -89,6 +95,7 @@ int PACKETSPERSECOND=DEF_PACKETSPERSECOND;
 
 BASE_CL * objects[MAX_OBJECTS];
 BASE_CL * actobject;
+BASE_CL * deviceobject;
 BASE_CL * copy_object;
 int    actport;
 struct LINKStruct * actconnect;
@@ -102,8 +109,8 @@ struct MIDIPORTStruct       MIDIPORTS[MAX_MIDIPORTS];
 struct SCALEStruct          LOADSCALE;
 struct TIMINGStruct         TIMING;
 
-char objnames[50][20]      = { OBJNAMES };
-char dimensions[10][10]      = {"uV","mV","Hz","%","Deg","uS","kOhm","BPM" };
+char objnames[OBJECT_COUNT][20]      = { OBJNAMES };
+char dimensions[10][10]      = {"uV","mV","V","Hz","%","DegC","DegF","uS","kOhm","BPM" };
 int  fft_bin_values[10]    = { 32,64,128,256,512,0 };
 
 
@@ -123,6 +130,7 @@ void create_object(int type)
 	switch(type) 
 	{ 
 		case OB_EEG:		 actobject=new EEGOBJ(GLOBAL.objects); 
+							 deviceobject=actobject;
 							 actobject->object_size=sizeof(EEGOBJ);break;
 		case OB_MIDI:		 actobject=new MIDIOBJ(GLOBAL.objects);
 							 actobject->object_size=sizeof(MIDIOBJ);break;
@@ -221,7 +229,20 @@ void create_object(int type)
 		case OB_COMREADER:   actobject=new COMREADEROBJ(GLOBAL.objects); 
 							 actobject->object_size=sizeof(COMREADEROBJ);break;
 		case OB_NEUROBIT:      actobject=new NEUROBITOBJ(GLOBAL.objects); 
+							 deviceobject=actobject;
 							 actobject->object_size=sizeof(NEUROBITOBJ);break;
+		case OB_MIN:		 actobject=new MINOBJ(GLOBAL.objects); 
+							 actobject->object_size=sizeof(MINOBJ);break;
+		case OB_MAX:         actobject=new MAXOBJ(GLOBAL.objects); 
+							 actobject->object_size=sizeof(MAXOBJ);break;
+		case OB_ROUND:      actobject=new ROUNDOBJ(GLOBAL.objects); 
+							 actobject->object_size=sizeof(ROUNDOBJ);break;
+		case OB_DIFFERENTIATE:      actobject=new DIFFERENTIATEOBJ(GLOBAL.objects); 
+							 actobject->object_size=sizeof(DIFFERENTIATEOBJ);break;
+		case OB_DELAY:      actobject=new DELAYOBJ(GLOBAL.objects); 
+							 actobject->object_size=sizeof(DELAYOBJ);break;
+		case OB_LIMITER:      actobject=new LIMITEROBJ(GLOBAL.objects); 
+							 actobject->object_size=sizeof(LIMITEROBJ);break;
 		
 	}
 	if (actobject)
@@ -965,8 +986,28 @@ void update_dimensions(void)
 
 void update_samplingrate(int newrate)
 {
-	int t;
+	int t,error=0;
 	char sztemp[30],szorder[5];
+
+	for (t=0;t<GLOBAL.objects;t++)
+ 	switch (objects[t]->type)
+	{ 
+	   case OB_FILTER:
+		   {
+			   FILTEROBJ * st = (FILTEROBJ *) objects[t];
+
+			   if (st->par1>newrate/2) { error=1; break;}
+ 			   if ((FILTERTYPE[st->filtertype].param==2) && (st->par2>newrate/2)) { error=1; break;}
+		   }
+		   break;
+	   case OB_MAGNITUDE:
+		   {
+   			    MAGNITUDEOBJ * st = (MAGNITUDEOBJ *) objects[t];
+			   if ((st->wid>newrate/2) ||(st->center>newrate/2))  { error=1; break;}
+		   }
+	}
+
+	if (error) {report_error ("Cannot change Sampling Rate, please check corner frequencies of filter- or magnitude elements"); return;}
 
 	PACKETSPERSECOND=newrate;
 	for (t=0;t<GLOBAL.objects;t++)

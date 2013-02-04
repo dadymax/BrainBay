@@ -285,6 +285,7 @@ LRESULT CALLBACK MainWndHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 					while (GLOBAL.objects>0)
 						free_object(0);
 
+					deviceobject=NULL;
 					GLOBAL.showdesign=TRUE;
 					ShowWindow(ghWndDesign,TRUE);
 				    SetWindowPos(ghWndDesign,HWND_TOP,0,0,0,0,SWP_DRAWFRAME|SWP_NOMOVE|SWP_NOSIZE);
@@ -367,7 +368,7 @@ LRESULT CALLBACK MainWndHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 						char tmpfile [250];
 						close_toolbox();
 						strcpy(tmpfile,GLOBAL.resourcepath);
-						strcat(tmpfile,"HELPPAGES\\index.html");
+						strcat(tmpfile,"BrainBay-user_manual.pdf");
 						ShellExecute(0, "open", tmpfile, NULL, NULL, SW_SHOWNORMAL);
 					}
 					break;
@@ -423,6 +424,17 @@ LRESULT CALLBACK MainWndHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
                      if (ghWndSettings==NULL) ghWndSettings=CreateDialog(hInst, (LPCTSTR)IDD_SETTINGSBOX, ghWndStatusbox, (DLGPROC)SETTINGSDlgHandler);
 					 else SetForegroundWindow(ghWndSettings);
 					break;
+				case IDM_DEVICESETTINGS:
+					if (deviceobject) 
+					{
+						close_toolbox();
+						actobject=deviceobject;
+	//					GLOBAL.showtoolbox=find_object(devicebox);
+						actobject->make_dialog(); 
+						if (actobject->displayWnd) 
+							SetWindowPos(actobject->displayWnd,HWND_TOP,0,0,0,0,SWP_DRAWFRAME|SWP_NOMOVE|SWP_NOSIZE);
+					} else report ("No Amplifier Device present in the design");
+					break;
 				case IDM_INSERTMODEEG: 
 					if (!count_objects(OB_EEG)) create_object(OB_EEG); 
 					break;
@@ -452,6 +464,7 @@ LRESULT CALLBACK MainWndHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 					break;
 				case IDM_INSERTWAV:
 					if (!count_objects(OB_WAV)) create_object(OB_WAV);
+					else report_error("Currently only one Sound player is supported.");
 					break;
 				case IDM_INSERTTCPRECEIVER:create_object(OB_TCP_RECEIVER);
 					break;
@@ -526,6 +539,19 @@ LRESULT CALLBACK MainWndHandler(HWND hWnd, UINT message, WPARAM wParam, LPARAM l
 				case IDM_INSERTOPTIMA:
 					if (!count_objects(OB_NEUROBIT)) create_object(OB_NEUROBIT);
 					break;
+				case IDM_INSERTMIN:create_object(OB_MIN);
+					break;
+				case IDM_INSERTMAX:create_object(OB_MAX);
+					break;
+				case IDM_INSERTROUND:create_object(OB_ROUND);
+					break;
+				case IDM_INSERTDIFFERENTIATE:create_object(OB_DIFFERENTIATE);
+					break;
+				case IDM_INSERTDELAY:create_object(OB_DELAY);
+					break;
+				case IDM_INSERTLIMITER:create_object(OB_LIMITER);
+					break;
+
 				case IDM_COPY:
 					if (actobject)
 					{

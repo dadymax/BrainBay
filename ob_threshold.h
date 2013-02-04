@@ -1,6 +1,6 @@
 /* -----------------------------------------------------------------------------
 
-  BrainBay  Version 1.7, GPL 2003-2010, contact: chris@shifz.org
+  BrainBay  Version 1.8, GPL 2003-2011, contact: chris@shifz.org
   
   OB_THRESHOLD.H:  contains the THRESHOLD-Object
   the object's propertries are declared and the

@@ -1,6 +1,6 @@
 /* -----------------------------------------------------------------------------
 
-  BrainBay  -  Version 1.7, GPL 2003-2010
+  BrainBay  -  Version 1.8, GPL 2003-2011
 
   MODULE:  OB_PEAKDETECT.CPP
   Author:  Chris Veigl

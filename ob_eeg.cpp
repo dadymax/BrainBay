@@ -1,6 +1,6 @@
 /* -----------------------------------------------------------------------------
 
-  BrainBay  Version 1.7, GPL 2003-2010, contact: chris@shifz.org
+  BrainBay  Version 1.8, GPL 2003-2011, contact: chris@shifz.org
                OpenSource Application for realtime BodySignalProcessing & HCI
                with the OpenEEG hardware
 			   
@@ -99,9 +99,9 @@
 #define VINFO_PROTOCOL_SUBNUMBER 9 	// view sub version of protocoll 21 (read only)
 
 
-  char devicetypes[20][40]   = {"ModularEEG P2","ModularEEG P3","1 Channel Raw Data","MonolithEEG P21","SmartBrainGames 4Chn","1Chn of 8bit values", "Pendant EEG v3", "QDS NFB 256", "NIA USB HDI Ver 1.1","\0"};
-  int  AMOUNT_TO_READ   [20]  = {     68,               66,               8           ,  21 ,            32   ,                  4   ,                  32,              80         ,    3 };
-  int  BYTES_PER_PACKET [20]  = {     17,               11,               2           ,  7  ,             5   ,                  1   ,                  5,               20         ,    3 };
+  char devicetypes[20][40]   = {"ModularEEG P2","ModularEEG P3","1 Channel Raw Data","MonolithEEG P21","SmartBrainGames 4Chn","1Chn of 8bit values", "Pendant EEG v3", "QDS NFB 256", "NIA USB HDI Ver 1.4","IBVA 4-chn","\0"};
+  int  AMOUNT_TO_READ   [20]  = {     68,               66,               8           ,  21 ,            32   ,                  4   ,                  32,              80         ,    3 ,                  16 };
+  int  BYTES_PER_PACKET [20]  = {     17,               11,               2           ,  7  ,             5   ,                  1   ,                  5,               20         ,    3 ,                  16 };
 
 
 
@@ -110,8 +110,8 @@ char captfiletypes[10][40] = {"Text (Debug Mode)","Integer Values","\0"};
 char * szBaud[] = {"9600", "19200", "38400", "57600", "115200", "230400", "460800", "\0"};  // Combobox - Items for Baudrate
 DWORD   BaudTable[] =  {9600, 19200, 38400, 57600, 115200, 230400, 460800,0 } ;  // Constants for Baudrate Setting
 
-char * samplingrates[] = {"256","300","512","600","1024","1200", "\0"};  // Combobox - Items for Samplingrate
-int    SamplingRateTable[] =  { 256,300,512,600,1024,1200 } ;  // Constants for Samplingrate Setting
+char * samplingrates[] = {"256","300","512","600","1024","1200","100","125","150","200","2000", "\0"};  // Combobox - Items for Samplingrate
+int    SamplingRateTable[] =  { 256,300,512,600,1024,1200,100,125,150,200,2000 } ;  // Constants for Samplingrate Setting
 
 #define NIASAMPLINGRATE 1000			// NIA Sampling Rate = 1000/sec.
 int cc=0;
@@ -129,47 +129,7 @@ void check_sync(unsigned int num)
 }
 
 
-/********************************************************************
 
-  ModularEEG Packet Format NIA
- 
-
-  One packet has a 55 byte 
-     	16 Samples (three bytes each: 48 Bytes total)
-	2 Byte Sync sequence (56, 189)
-	2 Byte Latency Timing information
-	2 Byte Total number of samples read
-	1 Byte number of valid samples within this packet
- giving a total of 55 bytes.
-
- **********************************************************************/
-
-
-
-void parse_byte_NIA(unsigned char actbyte)
-{
-	switch (PACKET.readstate) {
-		case 0:
-			PACKET.buffer[PACKET.extract_pos]=actbyte ;
-			PACKET.extract_pos=0;
-			PACKET.readstate++; 
-			break;
-		case 1:
-			PACKET.buffer[PACKET.extract_pos]+=actbyte*0x100 ;
-			PACKET.readstate++; 
-			break;
-		case 2:
-			PACKET.buffer[PACKET.extract_pos]+=actbyte*0x10000;	// 24-Bit Werte
-			PACKET.buffer[PACKET.extract_pos]/=0x100;			// auf 16 Bit beschränken!!
-			PACKET.extract_pos++;
-			PACKET.readstate=0; 
-			process_packets();
-			break;
-		default: PACKET.readstate=0;
-
-
-	}
-}
 
 /********************************************************************
 
@@ -656,20 +616,25 @@ void parse_byte_PendantV3(unsigned char actbyte)
 
 void parse_byte_QDS(unsigned char actbyte)
 {
+	static short buff=0;
+
     switch (PACKET.readstate) 
 	{
 		  case 0: if (actbyte==204) PACKET.readstate++;  break;
 		  case 1: if (actbyte==51)  PACKET.readstate++;  break;
 		  case 2: if (actbyte==204) PACKET.readstate++;  break;
-		  case 3: PACKET.readstate++;  break;
-		  case 4: if (PACKET.extract_pos < 16)
-				  {   if ((PACKET.extract_pos & 1) == 0)
-					     PACKET.buffer[PACKET.extract_pos>>1]=actbyte*256;
-			          else PACKET.buffer[PACKET.extract_pos>>1]+=actbyte;
-					  PACKET.extract_pos++;
+		  case 3: PACKET.extract_pos=0; PACKET.readstate++; break;
+		  case 4: if ((PACKET.extract_pos & 1) == 0) {
+						buff =  actbyte;
+					     PACKET.buffer[PACKET.extract_pos>>1]=buff;
 				  }
-				  else
-				  {  PACKET.switches= actbyte;
+			      else {
+					  buff =  actbyte*256;
+					  PACKET.buffer[PACKET.extract_pos>>1]+=buff+32768;
+				  }
+				  PACKET.extract_pos++;
+				  if (PACKET.extract_pos>=16)
+				  { 
 					 PACKET.readstate=0;
 		  	  	     process_packets();
 				  }
@@ -678,6 +643,85 @@ void parse_byte_QDS(unsigned char actbyte)
 		  default: PACKET.readstate=0;
 		}		
 }
+
+void parse_byte_IBVA(unsigned char actbyte)
+{
+	static int chn_index=0;
+	static int digit=3;
+	int val;
+
+	if (actbyte == 0x0d) { digit=3;chn_index=0;}
+	else if (((actbyte >='0') && (actbyte <='9')) || ((actbyte >='a') && (actbyte <='f')))
+	{
+		if (actbyte <='9') val=actbyte-'0'; else val=actbyte-'a'+10;
+		if (digit==3) {
+			if (actbyte=='b') {chn_index=5;val=0;digit++;}
+			PACKET.buffer[chn_index]=0;
+		}
+		digit--;
+		PACKET.buffer[chn_index]+= val << (digit*4);
+		if (digit==0) {
+//			PACKET.buffer[chn_index]-=0x200;
+			digit=3; chn_index++;
+			if (chn_index ==4) { process_packets(); chn_index=0; }
+		}
+	}
+}
+
+
+/********************************************************************
+
+  ModularEEG Packet Format NIA
+ 
+
+  One packet has a 55 byte 
+     	16 Samples (three bytes each: 48 Bytes total)
+	2 Byte Sync sequence (56, 189)
+	2 Byte Latency Timing information
+	2 Byte Total number of samples read
+	1 Byte number of valid samples within this packet
+ giving a total of 55 bytes.
+
+ **********************************************************************/
+
+void parse_byte_NIA(unsigned char actbyte)
+{
+
+	switch (PACKET.readstate) {
+		case 0:
+			PACKET.buffer[0]=actbyte ;
+			PACKET.readstate++; 
+			break;
+		case 1:
+			PACKET.buffer[0]+=actbyte*256 ;
+			PACKET.readstate++; 
+			break;
+		case 2:
+			PACKET.buffer[0]+=actbyte * 65536;
+			PACKET.readstate++; 
+//			PACKET.readstate=0; 
+//			process_packets();
+			break;
+		case 3:
+			PACKET.buffer[1]=actbyte ;
+			PACKET.readstate++; 
+			break;
+		case 4:
+			PACKET.buffer[1]+=actbyte * 256;
+			PACKET.readstate++; 
+			break;
+		case 5:
+			PACKET.buffer[1]+=actbyte * 65536;
+			PACKET.readstate=0; 
+			process_packets();
+			break;
+		default: PACKET.readstate=0;
+
+
+	}
+
+}
+
 
 void ParseLocalInput(int BufLen)
 {
@@ -700,6 +744,7 @@ void ParseLocalInput(int BufLen)
 			case DEV_PENDANT3:  parse_byte_PendantV3(actbyte); break;
 			case DEV_QDS:       parse_byte_QDS(actbyte); break;
 			case DEV_NIA:		parse_byte_NIA(actbyte); break;
+			case DEV_IBVA:		parse_byte_IBVA(actbyte); break;
 
 		}
 	}
@@ -711,6 +756,96 @@ void ParseLocalInput(int BufLen)
 
 void enable_buttons(HWND hDlg)
 {
+	if (TTY.devicetype == DEV_IBVA) {
+		EnableWindow(GetDlgItem(hDlg, IDC_BATTERY), TRUE);
+		EnableWindow(GetDlgItem(hDlg, IDC_TESTBAT), TRUE);
+		EnableWindow(GetDlgItem(hDlg, IDC_SETCUTOFF), TRUE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CUTOFF), TRUE);
+		ShowWindow(GetDlgItem(hDlg, IDC_BATTERY), TRUE);
+		ShowWindow(GetDlgItem(hDlg, IDC_TESTBAT), TRUE);
+		ShowWindow(GetDlgItem(hDlg, IDC_SETCUTOFF), TRUE);
+		ShowWindow(GetDlgItem(hDlg, IDC_CUTOFF), TRUE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CH1), FALSE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CH2), FALSE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CH3), FALSE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CH4), FALSE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CH5), FALSE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CH6), FALSE);
+		EnableWindow(GetDlgItem(hDlg, IDC_EXTEND), FALSE);
+		EnableWindow(GetDlgItem(hDlg, IDC_RESOLUTION), FALSE);
+		ShowWindow(GetDlgItem(hDlg, IDC_CH1), FALSE);
+		ShowWindow(GetDlgItem(hDlg, IDC_CH2), FALSE);
+		ShowWindow(GetDlgItem(hDlg, IDC_CH3), FALSE);
+		ShowWindow(GetDlgItem(hDlg, IDC_CH4), FALSE);
+		ShowWindow(GetDlgItem(hDlg, IDC_CH5), FALSE);
+		ShowWindow(GetDlgItem(hDlg, IDC_CH6), FALSE);
+		ShowWindow(GetDlgItem(hDlg, IDC_EXTEND), FALSE);
+		ShowWindow(GetDlgItem(hDlg, IDC_CHNLABEL), FALSE);
+		ShowWindow(GetDlgItem(hDlg, IDC_RESLABEL), FALSE);
+		ShowWindow(GetDlgItem(hDlg, IDC_RESOLUTION), FALSE);
+
+	}
+	else {
+		EnableWindow(GetDlgItem(hDlg, IDC_BATTERY), FALSE);
+		EnableWindow(GetDlgItem(hDlg, IDC_TESTBAT), FALSE);
+		EnableWindow(GetDlgItem(hDlg, IDC_SETCUTOFF), FALSE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CUTOFF), FALSE);
+		ShowWindow(GetDlgItem(hDlg, IDC_BATTERY), FALSE);
+		ShowWindow(GetDlgItem(hDlg, IDC_TESTBAT), FALSE);
+		ShowWindow(GetDlgItem(hDlg, IDC_SETCUTOFF), FALSE);
+		ShowWindow(GetDlgItem(hDlg, IDC_CUTOFF), FALSE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CH1), TRUE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CH2), TRUE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CH3), TRUE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CH4), TRUE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CH5), TRUE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CH6), TRUE);
+		EnableWindow(GetDlgItem(hDlg, IDC_EXTEND), TRUE);
+		EnableWindow(GetDlgItem(hDlg, IDC_RESOLUTION), TRUE);
+		ShowWindow(GetDlgItem(hDlg, IDC_CH1), TRUE);
+		ShowWindow(GetDlgItem(hDlg, IDC_CH2), TRUE);
+		ShowWindow(GetDlgItem(hDlg, IDC_CH3), TRUE);
+		ShowWindow(GetDlgItem(hDlg, IDC_CH4), TRUE);
+		ShowWindow(GetDlgItem(hDlg, IDC_CH5), TRUE);
+		ShowWindow(GetDlgItem(hDlg, IDC_CH6), TRUE);
+		ShowWindow(GetDlgItem(hDlg, IDC_EXTEND), TRUE);
+		ShowWindow(GetDlgItem(hDlg, IDC_CHNLABEL), TRUE);
+		ShowWindow(GetDlgItem(hDlg, IDC_RESLABEL), TRUE);
+		ShowWindow(GetDlgItem(hDlg, IDC_RESOLUTION), TRUE);
+	}
+
+	if (TTY.devicetype == DEV_NIA) {
+		EnableWindow(GetDlgItem(hDlg, IDC_PORTCOMBO), FALSE);
+		EnableWindow(GetDlgItem(hDlg, IDC_BAUDCOMBO), FALSE);
+		EnableWindow(GetDlgItem(hDlg, IDC_RESOLUTION), FALSE);
+		EnableWindow(GetDlgItem(hDlg, IDC_BIDIRECT), FALSE);
+		EnableWindow(GetDlgItem(hDlg, IDC_SAMPLINGCOMBO), FALSE);
+		EnableWindow(GetDlgItem(hDlg, IDC_FLOW_CONTROL), FALSE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CH3), FALSE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CH4), FALSE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CH5), FALSE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CH6), FALSE);
+		EnableWindow(GetDlgItem(hDlg, IDC_EXTEND), FALSE);
+		CheckDlgButton(hDlg,IDC_CH3,FALSE);
+		CheckDlgButton(hDlg,IDC_CH4,FALSE);
+		CheckDlgButton(hDlg,IDC_CH5,FALSE);
+		CheckDlgButton(hDlg,IDC_CH6,FALSE);
+		CheckDlgButton(hDlg,IDC_EXTEND,FALSE);
+	}
+	else	{
+		EnableWindow(GetDlgItem(hDlg, IDC_PORTCOMBO), TRUE);
+		EnableWindow(GetDlgItem(hDlg, IDC_BAUDCOMBO), TRUE);
+		EnableWindow(GetDlgItem(hDlg, IDC_RESOLUTION), TRUE);
+		EnableWindow(GetDlgItem(hDlg, IDC_BIDIRECT), TRUE);
+		EnableWindow(GetDlgItem(hDlg, IDC_SAMPLINGCOMBO), TRUE);
+		EnableWindow(GetDlgItem(hDlg, IDC_FLOW_CONTROL), TRUE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CH3), TRUE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CH4), TRUE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CH5), TRUE);
+		EnableWindow(GetDlgItem(hDlg, IDC_CH6), TRUE);
+		EnableWindow(GetDlgItem(hDlg, IDC_EXTEND), TRUE);
+	}
+
 	EnableWindow(GetDlgItem(hDlg, IDC_REC_ARCHIVE), FALSE);
 	EnableWindow(GetDlgItem(hDlg, IDC_CLOSE_REC), FALSE);
 	EnableWindow(GetDlgItem(hDlg, IDC_OPEN_ARCHIVE), FALSE);
@@ -816,6 +951,14 @@ void update_ports(HWND hDlg, EEGOBJ * st)
 	    st->out_ports[x].get_range=-1;
      	st->out_ports[x].out_min=0.0f;
 	    st->out_ports[x].out_max=3.0f;
+		break;
+	case DEV_QDS:
+		for (x=0;x<6;x++) 
+		{
+  	     st->out_ports[x].get_range=-1;
+     	 st->out_ports[x].out_min=-16485.0f;
+	     st->out_ports[x].out_max=16485.0f;
+		}
 		break;
 
 	default:
@@ -988,7 +1131,10 @@ LRESULT CALLBACK EEGDlgHandler( HWND hDlg, UINT message, WPARAM wParam, LPARAM l
 			CheckDlgButton(hDlg, IDC_CONNECTED, TTY.CONNECTED);
 			CheckDlgButton(hDlg, IDC_BIDIRECT, TTY.BIDIRECT);
 			CheckDlgButton(hDlg, IDC_FLOW_CONTROL, TTY.FLOW_CONTROL);
-			SetDlgItemText(hDlg,IDC_ARCHIVE_FILENAME,CAPTFILE.filename);
+			SetDlgItemText(hDlg, IDC_ARCHIVE_FILENAME,CAPTFILE.filename);
+			SetDlgItemText(hDlg, IDC_CUTOFF,"0.33");
+			SetDlgItemText(hDlg, IDC_BATTERY,"0.00 V");
+
 			SetDlgItemInt(hDlg,IDC_SAMPLINGRATE,PACKETSPERSECOND,0);
 			sprintf(strfloat,"%.2f",(float)CAPTFILE.offset/(float)PACKETSPERSECOND);
 			SetDlgItemText(hDlg,IDC_OFFSET,strfloat);
@@ -1034,6 +1180,13 @@ LRESULT CALLBACK EEGDlgHandler( HWND hDlg, UINT message, WPARAM wParam, LPARAM l
 					{						
 						TTY.samplingrate=SendMessage(GetDlgItem(hDlg, IDC_SAMPLINGCOMBO), CB_GETCURSEL , 0, 0);
 						update_samplingrate(SamplingRateTable[TTY.samplingrate]);
+						if ((TTY.COMDEV!=INVALID_HANDLE_VALUE) && (TTY.devicetype==DEV_IBVA))
+						{
+							char str[15];
+							wsprintf(str,"SR %d\r",SamplingRateTable[TTY.samplingrate]);
+							write_string_to_comport(str);
+						}
+
 						update_p21state();						
 					}
 					break;
@@ -1060,6 +1213,10 @@ LRESULT CALLBACK EEGDlgHandler( HWND hDlg, UINT message, WPARAM wParam, LPARAM l
 								if (TTY.COMDEV!=INVALID_HANDLE_VALUE) 
 									BreakDownCommPort();								
 								TTY.CONNECTED=SetupCommPort(TTY.PORT);
+								if ((TTY.COMDEV!=INVALID_HANDLE_VALUE) && (TTY.devicetype==DEV_IBVA))
+								{
+									write_string_to_comport("SR 256\r");
+								}
 							}
 							CheckDlgButton(hDlg, IDC_CONNECTED, TTY.CONNECTED);
 						}
@@ -1069,6 +1226,18 @@ LRESULT CALLBACK EEGDlgHandler( HWND hDlg, UINT message, WPARAM wParam, LPARAM l
 				case IDC_CONNECTED:
 						CheckDlgButton(hDlg,IDC_CONNECTED, TTY.CONNECTED);
 					break;
+
+				case IDC_SETCUTOFF:
+						if ((TTY.COMDEV!=INVALID_HANDLE_VALUE) && (TTY.devicetype==DEV_IBVA))
+						{
+							char str[20];
+							float fl;
+							GetDlgItemText(hDlg,IDC_CUTOFF,(LPSTR) str,20);
+							sscanf(str,"%f",&fl);
+							sprintf(str,"FR %.2f\r",fl);
+							write_string_to_comport(str);
+						}
+						break;
 
 				case IDC_BIDIRECT:
 						TTY.BIDIRECT=IsDlgButtonChecked(hDlg,IDC_BIDIRECT);
@@ -1082,6 +1251,14 @@ LRESULT CALLBACK EEGDlgHandler( HWND hDlg, UINT message, WPARAM wParam, LPARAM l
 						CheckDlgButton(hDlg, IDC_CONNECTED, TTY.CONNECTED);
 					}
 					break;
+				case IDC_TESTBAT:
+						if ((TTY.COMDEV!=INVALID_HANDLE_VALUE) && (TTY.devicetype==DEV_IBVA))
+						{
+							write_to_comport(0x42);
+							write_to_comport(0x4c);
+							write_to_comport(0x0d);
+						}
+					break;
 
 				case IDC_DEVICECOMBO:
 					if (HIWORD(wParam)==CBN_SELCHANGE)
@@ -1089,9 +1266,10 @@ LRESULT CALLBACK EEGDlgHandler( HWND hDlg, UINT message, WPARAM wParam, LPARAM l
 						TTY.devicetype=SendMessage(GetDlgItem(hDlg, IDC_DEVICECOMBO), CB_GETCURSEL , 0, 0);
 					
 						update_devicetype ();
+						enable_buttons(hDlg);
 						update_ports(hDlg, st);
 						update_p21state();
-							
+ 					    InvalidateRect(ghWndDesign,NULL,TRUE);
 					}
 					break;
 				case IDC_FILEMODECOMBO:
@@ -1156,7 +1334,7 @@ LRESULT CALLBACK EEGDlgHandler( HWND hDlg, UINT message, WPARAM wParam, LPARAM l
 					if (open_file_dlg(ghWndMain,CAPTFILE.filename, FT_ARCHIVE, OPEN_SAVE))
 					{
 						CAPTFILE.filehandle=create_captfile(CAPTFILE.filename);
-						if(CAPTFILE.filehandle) 
+						if(CAPTFILE.filehandle!=INVALID_HANDLE_VALUE) 
 						{    SetDlgItemText(hDlg,IDC_ARCHIVE_FILENAME,CAPTFILE.filename);
 							 CAPTFILE.do_write=1;
 							 enable_buttons(hDlg);
@@ -1316,7 +1494,10 @@ EEGOBJ::EEGOBJ(int num) : BASE_CL()
 			    {
 				  if (chnmatrix & (1<<i))
 				  {
-					pass_values(x,(float) PACKET.buffer[i] * (out_ports[x].out_max-out_ports[x].out_min) / resolution - 16840000.0f / resolution);
+					  // pass_values(x,(float) PACKET.buffer[i] * (out_ports[x].out_max-out_ports[x].out_min) / resolution - 16840000.0f / resolution);
+					  // pass_values(x,(float)PACKET.buffer[i] -8388608 );
+					  pass_values(x,(float)PACKET.buffer[i] / 16777216.0f  * (out_ports[x].out_max-out_ports[x].out_min)  + out_ports[x].out_min);
+					  x++;
 									//NIA Normierung: Shiften auf Nulllinie 
 				  }
 			    }
@@ -1349,17 +1530,28 @@ EEGOBJ::EEGOBJ(int num) : BASE_CL()
 		}
 
 
-		if ((!TIMING.dialog_update) && (hDlg==ghWndToolbox) && (!scrolling) && (CAPTFILE.do_read)) 
+		if ((!TIMING.dialog_update) && (hDlg==ghWndToolbox))
 		{
-			DWORD x= SetFilePointer(CAPTFILE.filehandle,0,NULL,FILE_CURRENT);
-			x=x*1000/CAPTFILE.length/TTY.bytes_per_packet;
-			SetScrollPos(GetDlgItem(hDlg, IDC_ARCHIVE_POSBAR), SB_CTL, x, 1);
+			if ((TTY.COMDEV!=INVALID_HANDLE_VALUE) && (TTY.devicetype==DEV_IBVA))
+			{
+				char str[15];
+				sprintf(str,"%.2f V",(float)PACKET.buffer[5]*16/1024);
+				SetDlgItemText(hDlg, IDC_BATTERY, str);
+			}
+
+			if((!scrolling) && (CAPTFILE.do_read)) 
+			{
+				DWORD x= SetFilePointer(CAPTFILE.filehandle,0,NULL,FILE_CURRENT);
+				x=x*1000/CAPTFILE.length/TTY.bytes_per_packet;
+				SetScrollPos(GetDlgItem(hDlg, IDC_ARCHIVE_POSBAR), SB_CTL, x, 1);
+			}
 		}
 	  }
 
 EEGOBJ::~EEGOBJ()
 	  {
 	//	BreakDownCommPort();
+		DisconnectNIA();
 	    close_captfile();
 	  }  
 

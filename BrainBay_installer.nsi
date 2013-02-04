@@ -55,6 +55,7 @@ Section "Application" SecApp
   File "debug\*.txt"
   File "debug\*.sys"
   File "debug\*.xml"
+  File "debug\*.pdf"
 
   SetOutPath $INSTDIR\ARCHIVES
   File "debug\ARCHIVES\adxl202.arc"
@@ -72,8 +73,6 @@ Section "Application" SecApp
   File /r "debug\CONFIGURATIONS\*.*"
   SetOutPath $INSTDIR\GRAPHICS
   File "debug\GRAPHICS\*.*"
-  SetOutPath $INSTDIR\HELPPAGES
-  File /r "debug\HELPPAGES\*.*"
   SetOutPath $INSTDIR\MOVIES
   File "debug\MOVIES\face.avi"
   SetOutPath $INSTDIR\NETWORK

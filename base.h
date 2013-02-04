@@ -1,7 +1,7 @@
 /* -----------------------------------------------------------------------------
 
 
-  BrainBay  -  Version 1.7, GPL 2003-2010
+  BrainBay  -  Version 1.8, GPL 2003-2011
                OpenSource Application for realtime BodySignalProcessing & HCI
                with the OpenEEG hardware
 			   
@@ -64,6 +64,7 @@
 void report_error( char * Message );
 extern class BASE_CL * objects[MAX_OBJECTS];
 extern class BASE_CL * actobject;
+extern class BASE_CL * deviceobject;
 extern class BASE_CL * copy_object;
 extern int actport;
 extern struct LINKStruct * actconnect;

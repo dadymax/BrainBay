@@ -1,6 +1,6 @@
 /* -----------------------------------------------------------------------------
 
-  BrainBay  Version 1.7, GPL 2003-2010, contact: chris@shifz.org
+  BrainBay  Version 1.8, GPL 2003-2011, contact: chris@shifz.org
     
   MODULE: OB_FILE_WRITER.H:  contains the FILE - Writer-Object
   Author: Chris Veigl
@@ -31,6 +31,7 @@ public:
 	char filename[255];
 	int  state;
 	int  format;
+	int  append;
 
 
     FILE_WRITEROBJ(int num);

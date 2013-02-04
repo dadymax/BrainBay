@@ -261,6 +261,7 @@
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="ob_delay.cpp" />
     <ClCompile Include="ob_deviation.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -268,6 +269,7 @@
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="ob_differentiate.cpp" />
     <ClCompile Include="ob_doku.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -352,6 +354,7 @@
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="ob_limiter.cpp" />
     <ClCompile Include="ob_magnitude.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -373,6 +376,7 @@
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="ob_max.cpp" />
     <ClCompile Include="ob_mci.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -387,6 +391,7 @@
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="ob_min.cpp" />
     <ClCompile Include="ob_mixer4.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -444,6 +449,7 @@
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">MaxSpeed</Optimization>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="ob_round.cpp" />
     <ClCompile Include="ob_sample_hold.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -545,7 +551,9 @@
     <ClInclude Include="ob_correlation.h" />
     <ClInclude Include="ob_counter.h" />
     <ClInclude Include="ob_debounce.h" />
+    <ClInclude Include="ob_delay.h" />
     <ClInclude Include="ob_deviation.h" />
+    <ClInclude Include="ob_differentiate.h" />
     <ClInclude Include="ob_doku.h" />
     <ClInclude Include="ob_edf_reader.h" />
     <ClInclude Include="ob_edf_writer.h" />
@@ -558,11 +566,14 @@
     <ClInclude Include="ob_filter.h" />
     <ClInclude Include="ob_integrate.h" />
     <ClInclude Include="ob_keystrike.h" />
+    <ClInclude Include="ob_limiter.h" />
     <ClInclude Include="ob_magnitude.h" />
     <ClInclude Include="ob_martini.h" />
     <ClInclude Include="ob_matlab.h" />
+    <ClInclude Include="ob_max.h" />
     <ClInclude Include="ob_mci.h" />
     <ClInclude Include="ob_midi.h" />
+    <ClInclude Include="ob_min.h" />
     <ClInclude Include="ob_mixer4.h" />
     <ClInclude Include="ob_mouse.h" />
     <ClInclude Include="ob_neurobit.h" />
@@ -572,6 +583,7 @@
     <ClInclude Include="ob_particle.h" />
     <ClInclude Include="ob_peakdetect.h" />
     <ClInclude Include="ob_port_io.h" />
+    <ClInclude Include="ob_round.h" />
     <ClInclude Include="ob_sample_hold.h" />
     <ClInclude Include="ob_signal.h" />
     <ClInclude Include="ob_skindialog.h" />

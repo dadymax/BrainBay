@@ -76,6 +76,8 @@
 #define IDD_COMREADER                   238
 #define IDD_OPTIMABOX                   239
 #define IDD_NEUROBITBOX                 239
+#define IDD_DELAYBOX                    241
+#define IDD_LIMITERBOX                  242
 #define IDC_PORTCOMBO                   1000
 #define IDC_BAUDCOMBO                   1001
 #define IDC_DEVICECOMBO                 1002
@@ -106,6 +108,7 @@
 #define IDC_AVGFROM                     1037
 #define IDC_AVGTO                       1038
 #define IDC_MIDIMUTE                    1039
+#define IDC_MIDIMUTEONFALSE             1040
 #define IDC_MIDIVOLUMEFROM              1041
 #define IDC_MIDIVOLUMETO                1042
 #define IDC_PAR1TEXT                    1044
@@ -182,7 +185,9 @@
 #define IDC_OUT_MAX                     1134
 #define IDC_NOISE                       1134
 #define IDC_NOISEBAR                    1135
+#define IDC_ACT_INPUT                   1135
 #define IDC_STORE                       1136
+#define IDC_ACT_OUTPUT                  1136
 #define IDC_PASSTYPECOMBO               1137
 #define IDC_ORDER                       1138
 #define IDC_WIDTHBAR                    1140
@@ -205,6 +210,7 @@
 #define IDC_OPEN_ARCHIVE                1156
 #define IDC_GROUP                       1156
 #define IDC_REC_ARCHIVE                 1157
+#define IDC_GRADUAL                     1157
 #define IDC_CLOSE_ARCHIVE               1158
 #define IDC_ARCHIVE_FILENAME            1159
 #define IDC_ARCHIVE_POSBAR              1160
@@ -236,9 +242,12 @@
 #define IDC_WAVCHANGESONLY              1170
 #define IDC_CLOSE                       1170
 #define IDC_SESSTART                    1170
+#define IDC_TESTBAT                     1170
 #define IDC_WAVVOLUMEINPUTFROM          1171
 #define IDC_LIST                        1171
 #define IDC_DBG                         1171
+#define IDC_TESTBAT2                    1171
+#define IDC_SETCUTOFF                   1171
 #define IDC_WAVVOLUMEINPUTTO            1172
 #define IDC_PATIENT                     1172
 #define IDC_WAVVOLUMEFROMBAR            1173
@@ -433,7 +442,9 @@
 #define IDC_EXTEND                      1313
 #define IDC_RESOLUTION                  1314
 #define IDC_HIDE                        1315
+#define IDC_BATTERY                     1315
 #define IDC_MATLABINTERVALBAR           1316
+#define IDC_CUTOFF                      1316
 #define IDC_MATLABEXPRESSION            1317
 #define IDC_MATLABINTERVAL              1318
 #define IDC_MATLABAPPLY                 1319
@@ -470,10 +481,13 @@
 #define IDC_DEVIATIONINTERVAL           1343
 #define IDC_FONTSIZEBAR                 1344
 #define IDC_BARSIZEBAR                  1345
+#define IDC_COMMABAR                    1345
+#define IDC_DIGITSBAR                   1345
 #define IDC_FONTSIZE                    1346
 #define IDC_FONTCOLOR                   1347
 #define IDC_BARSIZE                     1347
 #define IDC_INTEGER                     1348
+#define IDC_DIGITS                      1349
 #define IDC_TAG                         1350
 #define IDC_TYPE                        1351
 #define IDC_SIZEBAR                     1353
@@ -487,6 +501,7 @@
 #define IDC_LOAD                        1361
 #define IDC_SPEEDUPDATEBAR              1362
 #define IDC_UPDATEVOLUME                1363
+#define IDC_POS_CENTER                  1363
 #define IDC_VOLUMEUPDATEBAR             1364
 #define IDC_KEY                         1369
 #define IDC_ADDKEYUP                    1370
@@ -599,6 +614,14 @@
 #define IDC_USE_VIDEOINPUT              1480
 #define IDC_USE_CVCAPTURE               1481
 #define IDC_RADIO2                      1483
+#define IDC_CHNLABEL                    1484
+#define IDC_RESLABEL                    1485
+#define IDC_CHNFROMPORT                 1487
+#define IDC_DELAYTIME                   1490
+#define IDC_LOWERLIMIT                  1491
+#define IDC_UPPERLIMIT                  1492
+#define IDC_APPEND                      1493
+#define IDC_PLAY_ONCE                   1494
 #define IDM_SETTINGS                    32771
 #define IDM_LOADCONFIG                  32779
 #define IDM_SAVECONFIG                  32780
@@ -668,15 +691,31 @@
 #define ID_EDIT_PASTE                   32864
 #define IDM_COPY                        32865
 #define IDM_PASTE                       32866
+#define ID_PROCESSING_MIN               32867
+#define ID_PROCESSING_MAX               32868
+#define ID_PROCESSING_ROUND             32869
+#define ID_PROCESSING_DIFFERENTIATE     32870
+#define ID_PROCESSING_DELAY             32871
+#define ID_PROCESSING_LIMITER           32872
+#define IDM_INSERTMAX                   32873
+#define IDM_INSERTMIN                   32874
+#define IDM_INSERTROUND                 32875
+#define IDM_INSERTLIMITER               32876
+#define IDM_INSERTDELAY                 32877
+#define IDM_INSERTDIFFERENTIATE         32878
+#define ID_OPTIONS_APPLICATION          32879
+#define ID_OPTIONS_DEVICESETTINGS       32880
+#define IDM_DEVICEWINDOW                32881
+#define IDM_DEVICESETTINGS              32882
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        241
-#define _APS_NEXT_COMMAND_VALUE         32867
-#define _APS_NEXT_CONTROL_VALUE         1484
+#define _APS_NEXT_RESOURCE_VALUE        242
+#define _APS_NEXT_COMMAND_VALUE         32883
+#define _APS_NEXT_CONTROL_VALUE         1495
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

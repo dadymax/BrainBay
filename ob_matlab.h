@@ -7,7 +7,7 @@
 
 /* --------------------------------------------------------------------------------
   
-  BrainBay  Version 1.7, GPL 2003-2010, contact: chris@shifz.org
+  BrainBay  Version 1.8, GPL 2003-2011, contact: chris@shifz.org
 
   MODULE: OB_MATLAB.H:  declarations for the Matlab-Object
   Authors: Lester John, Chris Veigl

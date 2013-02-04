@@ -1,5 +1,5 @@
 /* -----------------------------------------------------------------------------
-  BrainBay  -  Version 1.7, GPL 2003-2010
+  BrainBay  -  Version 1.8, GPL 2003-2011
   
   MODULE: Files.cpp: this Module provides global accessible File - Functions.
 
@@ -91,7 +91,7 @@ HANDLE create_captfile(LPCTSTR lpFName)
 	int t;
 
 	CAPTFILEHEADERStruct  header;
-	if (TTY.devicetype>1) 
+	if (TTY.devicetype>1 && TTY.devicetype!=8) // new for NIA: 8
 	{ report_error("Can only create ModuarEEG P2 or P3 Archive Files."); return(INVALID_HANDLE_VALUE); }
 
 	for(t=0;t<sizeof(header);t++)  * (((char *)&header)+t) = ' ';
@@ -201,13 +201,17 @@ void update_devicetype(void)
 				CAPTFILE.length=(SetFilePointer(CAPTFILE.filehandle,0,NULL,FILE_END) - sizeof(CAPTFILEHEADERStruct))/BYTES_PER_PACKET[TTY.devicetype];
 			else CAPTFILE.length=0;
 			CAPTFILE.data_begin=sizeof(CAPTFILEHEADERStruct);
+			TTY.bytes_per_packet=BYTES_PER_PACKET[TTY.devicetype];
+			TTY.amount_to_read=AMOUNT_TO_READ[TTY.devicetype];
 			break;
 		case DEV_NIA:
 			if (CAPTFILE.filehandle!=INVALID_HANDLE_VALUE)
-				CAPTFILE.length=SetFilePointer(CAPTFILE.filehandle,0,NULL,FILE_END)/BYTES_PER_PACKET[TTY.devicetype];
-												//NIA only 1 24Bit-Sample/packet!!
+				CAPTFILE.length=SetFilePointer(CAPTFILE.filehandle,0,NULL,FILE_END)/BYTES_PER_PACKET[TTY.devicetype]/2;
+												//NIA 2 Channels: 2*24Bit-Sample/packet!!
 			else CAPTFILE.length=0;
-			CAPTFILE.data_begin=0;
+			CAPTFILE.data_begin=3;
+			TTY.bytes_per_packet=2*BYTES_PER_PACKET[TTY.devicetype];		// for NIA 2 Channels
+			TTY.amount_to_read=2*AMOUNT_TO_READ[TTY.devicetype];			// for NIA 2 Channels
 			break;
 
 		default:
@@ -215,10 +219,12 @@ void update_devicetype(void)
 				CAPTFILE.length=SetFilePointer(CAPTFILE.filehandle,0,NULL,FILE_END)/BYTES_PER_PACKET[TTY.devicetype];
 			else CAPTFILE.length=0;
 			CAPTFILE.data_begin=0;
+			TTY.bytes_per_packet=BYTES_PER_PACKET[TTY.devicetype];
+			TTY.amount_to_read=AMOUNT_TO_READ[TTY.devicetype];
 			break;
 	}
-	TTY.bytes_per_packet=BYTES_PER_PACKET[TTY.devicetype];
-	TTY.amount_to_read=AMOUNT_TO_READ[TTY.devicetype];
+//	TTY.bytes_per_packet=BYTES_PER_PACKET[TTY.devicetype];
+//	TTY.amount_to_read=AMOUNT_TO_READ[TTY.devicetype];
 	if (CAPTFILE.filehandle!=INVALID_HANDLE_VALUE)
 		SetFilePointer(CAPTFILE.filehandle,CAPTFILE.data_begin,NULL,FILE_BEGIN);
 	PACKET.readstate=0;
@@ -485,8 +491,14 @@ BOOL load_configfile(LPCTSTR pszFileName)
 		while (GLOBAL.objects>0)
 		    free_object(0);
 
+		deviceobject=NULL;
 		GLOBAL.run_exception=0;
 		GLOBAL.minimized=FALSE;
+		if (GLOBAL.main_maximized)
+		{  SendMessage(ghWndMain,WM_SIZE,SIZE_RESTORED,0);		 
+		   ShowWindow( ghWndMain, TRUE ); UpdateWindow( ghWndMain );
+		}
+
 
 	     load_next_config_buffer(hFile);
 		 load_property("objects",P_INT,&GLOBAL.objects);
@@ -537,6 +549,8 @@ BOOL load_configfile(LPCTSTR pszFileName)
 
 		 MoveWindow(ghWndMain,GLOBAL.left,GLOBAL.top,GLOBAL.right-GLOBAL.left,GLOBAL.bottom-GLOBAL.top,TRUE);
 		 MoveWindow(ghWndDesign,GLOBAL.design_left,GLOBAL.design_top,GLOBAL.design_right-GLOBAL.design_left,GLOBAL.design_bottom-GLOBAL.design_top,TRUE);
+		 		 InvalidateRect(ghWndMain,NULL,TRUE);
+
 		 if (!GLOBAL.showdesign)
 		 {  
 			 ShowWindow(ghWndDesign, FALSE); 
@@ -669,10 +683,10 @@ BOOL save_configfile(LPCTSTR pszFileName)
 		save_property(hFile,"tool-right",P_INT,&GLOBAL.tool_right);
 		save_property(hFile,"tool-bottom",P_INT,&GLOBAL.tool_bottom);
 		save_property(hFile,"showdesign",P_INT,&GLOBAL.showdesign);
+		save_property(hFile,"hidestatus",P_INT,&GLOBAL.hidestatus);
 		save_property(hFile,"showtoolbox",P_INT,&GLOBAL.showtoolbox);
 		save_property(hFile,"autorun",P_INT,&GLOBAL.autorun);
 		save_property(hFile,"minimized",P_INT,&GLOBAL.minimized);
-
 
 		save_property(hFile,"comport",P_INT,&TTY.PORT);
 		save_property(hFile,"bidirect",P_INT,&TTY.BIDIRECT);
@@ -798,7 +812,7 @@ BOOL load_settings(void)
 	
 }
 
-void load_property(char * desc,int type, void * ad)
+int load_property(char * desc,int type, void * ad)
 {
 	char newdesc[60];
 	char param[20000];
@@ -823,14 +837,13 @@ void load_property(char * desc,int type, void * ad)
 		  param[pos]=0;
 		  switch (type)
 		  {
-			case P_INT: sscanf(param,"%d",(int *)ad); break;
-			case P_FLOAT: sscanf(param,"%f",(float *)ad); break;
-		    case P_STRING: strcpy ((char *)ad,param); break;
+			case P_INT: sscanf(param,"%d",(int *)ad); return(1);
+			case P_FLOAT: sscanf(param,"%f",(float *)ad); return(1);
+		    case P_STRING: strcpy ((char *)ad,param); return(1);
 		  }
 		}
 	}
-	// else report_error("property not found");}
-
+	return(0);
 }
 
 
@@ -849,7 +862,7 @@ void save_property(HANDLE hFile, char * desc,int type, void * ad)
 		switch (type)
 		{
 		  case P_INT: sprintf(str,"%d",*((int *)ad)); break;
-		  case P_FLOAT: sprintf(str,"%.4f",*((float *)ad)); break;
+		  case P_FLOAT: sprintf(str,"%.6f",*((float *)ad)); break;
           case P_STRING: strcpy (str,(char *)ad); break;
 		}
 		strcat(str,nl);
